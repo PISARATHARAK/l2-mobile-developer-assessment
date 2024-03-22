@@ -4,18 +4,7 @@ import 'dart:math';
 import 'package:flutter_svg/flutter_svg.dart';
 
 void main() {
-  runApp(const Game());
-}
-
-class Game extends StatelessWidget {
-  const Game({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: HomeScreen(),
-    );
-  }
+  runApp(const HomeScreen());
 }
 
 class HomeScreen extends StatefulWidget {
@@ -25,8 +14,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   var colorsList = <Color>[
     Colors.red,
     Colors.orange,
@@ -40,166 +28,139 @@ class _HomeScreenState extends State<HomeScreen>
 
   int totalBalloons = 0;
   late Timer timer;
-  List<Bubble> bubbles = [];
-  Random random = Random();
+  List<Balloon> balloons = [];
   int score = 0;
-  late Size size;
   bool start = false;
   int _start = 120;
-  String _remainingTime = '2:00';
+  String _remainingTime = '';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    startGame();
+    gameStart();
   }
 
-  void startGame() {
+  void gameStart() {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_start == 0) {
         timer.cancel();
-        endGame();
+        gameEnd();
       } else {
         _start--;
         Duration remainingTime = Duration(seconds: _start);
         _remainingTime =
         '${remainingTime.inMinutes}:${(remainingTime.inSeconds - remainingTime.inMinutes * 60).toString().padLeft(2, '0')}';
-        balloonCreation();
+        setState(() {
+          balloons.add(Balloon(
+            left: Random().nextDouble() * (400),
+            color: colorsList[Random().nextInt(colorsList.length)],
+            pop: balloonPopped,
+          ));
+        });
       }
     });
   }
 
-  void balloonCreation() {
-    double left = random.nextDouble() * (size.width - 150);
-    setState(() {
-      bubbles.add(Bubble(
-        left: left,
-        color: colorsList[random.nextInt(colorsList.length)],
-        pop: pop,
-      ));
-    });
-  }
-
-  void pop() {
+  void balloonPopped() {
     setState(() {
       score++;
     });
   }
 
-  void endGame() {
+  void gameEnd() {
     setState(() {
       start = true;
-      totalBalloons = bubbles.length;
+      totalBalloons = balloons.length;
       _remainingTime = '2:00';
       _start = 120;
-      bubbles.clear();
+      balloons.clear();
     });
   }
 
-  void restartGame() {
+  void gameRestart() {
     setState(() {
-      endGame();
+      gameEnd();
       start = false;
-      startGame();
+      gameStart();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      body: !start
-          ? Stack(children: [
-        for (int i = 0; i < bubbles.length; i++) bubbles[i],
-      ])
-          : Container(
-        margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
+    return MaterialApp(
+      home: Scaffold(
+        body: !start
+            ? Stack(children: [
+          for (int i = 0; i < balloons.length; i++) balloons[i],
+        ])
+            : Container(
+          margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 220),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const Text(
+                'Score Board',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                'Balloons Popped: $score \n Balloons Missed: ${totalBalloons - score} \n your score:',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                '${score * 2 - (totalBalloons - score)}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
+              ),
+            ],
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            const Text(
-              'Score Board',
-              textAlign: TextAlign.center,
-              style: TextStyle(
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
+        floatingActionButton: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          margin: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.amber,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              )
+            ],
+          ),
+          child: TextButton(
+            onPressed: () {
+              if (start) {
+                gameRestart();
+              }
+            },
+            child: Text(
+              start ? 'Restart' : 'Remaining Time: $_remainingTime',
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
               ),
-            ),
-            const Divider(
-              thickness: 2,
-              color: Colors.white,
-            ),
-            Text(
-              'Balloons Popped: $score',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            Text(
-              'Balloons Missed: ${totalBalloons - score}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            const Text(
-              'You Score',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            Text(
-              '${score * 2 - (totalBalloons - score)}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
-      floatingActionButton: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        margin: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.amber,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            )
-          ],
-        ),
-        child: TextButton(
-          onPressed: () {
-            if (start) {
-              restartGame();
-            }
-          },
-          child: Text(
-            start ? 'Restart' : 'Remaining Time: $_remainingTime',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
             ),
           ),
         ),
@@ -208,12 +169,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-class Bubble extends StatefulWidget {
+class Balloon extends StatefulWidget {
   final double left;
   final Color color;
   final Function pop;
 
-  const Bubble({
+  const Balloon({
     super.key,
     required this.left,
     required this.color,
@@ -221,10 +182,10 @@ class Bubble extends StatefulWidget {
   });
 
   @override
-  State<Bubble> createState() => _BubbleState();
+  State<Balloon> createState() => _BalloonState();
 }
 
-class _BubbleState extends State<Bubble> {
+class _BalloonState extends State<Balloon> {
 
   var random = Random();
   bool show = false;
